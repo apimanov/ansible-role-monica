@@ -1,1 +1,18 @@
+mysql_root_password: super-secure-password
+mysql_databases:
+  - name: monicadb
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
+  - name: monica_test
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
+mysql_users:
+  - name: monica_dbuser
+    host: "%"
+    password: similarly-secure-password
+    priv: "monicadb.*:ALL"
+  - name: homestead
+    host: "%"
+    password: secret
+    priv: "monica_test.*:ALL"
 

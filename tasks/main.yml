@@ -1,19 +1,15 @@
 ---
-- name: install packages
-  apt:
-    name: "{{ item }}"
-    state: present
-    update_cache: yes
-  loop:
-    - git
-    - apt-transport-https
-    - nginx
+- include_tasks: install_deps_el8.yml
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
 
-- name: check out master branch
+- include_tasks: install_deps_stretch.yml
+  when: ansible_os_family=="Debian"
+
+- name: check out old branch
   git:
     repo: 'https://github.com/monicahq/monica'
     dest: /srv/monicahq
-    version: master
+    version: v2.19.1
 
 - name: Add the user
   user:
@@ -21,44 +17,10 @@
     shell: /usr/bin/nologin
     home: /srv/monicahq
 
-- name: Install sury key
-  apt_key:
-    url: 'https://packages.sury.org/php/apt.gpg'
+- name: Ensure group "www-data" exists
+  ansible.builtin.group:
+    name: www-data
     state: present
-
-- name: Add sury repositories
-  apt_repository:
-    repo: "deb https://packages.sury.org/php/ stretch main"
-    state: present
-    update_cache: yes
-    filename: 'sury'
-
-- name: install php dependencies
-  apt:
-    name: "{{ item }}"
-    state: present
-    update_cache: yes
-  loop:
-    - php7.3
-    - php7.3-cli
-    - php7.3-intl
-    - php7.3-iconv
-    - php7.3-fpm
-    - php7.3-curl
-    - php7.3-gd
-    - php7.3-mysql
-    - php7.3-mysqli
-    - php7.3-opcache
-    - php7.3-json
-    - php7.3-mbstring
-    - php7.3-soap
-    - php7.3-xml
-    - php7.3-zip
-    - php7.3-gmp
-    - php7.3-bcmath
-    - php-memcached
-    - php-xdebug
-    - php-redis
 
 - name: reload service php-fcgi
   become: true
@@ -111,14 +73,7 @@
     state: directory
     recurse: yes
     mode: g+w
-- name: Create nginx vhost config
-  template:
-    src: monicahq.conf.j2
-    dest: /etc/nginx/sites-enabled/monica.conf
-- name: Remove default nginx configuration
-  file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
+
 - name: reload service nginx
   become: true
   systemd:

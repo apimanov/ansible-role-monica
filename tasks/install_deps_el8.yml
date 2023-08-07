@@ -1,0 +1,104 @@
+---
+- name: install packages
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - git
+    - nginx
+    - cronie
+
+- name: pip install
+  pip:
+    name: PyMySQL
+
+- name: setup remi repository
+  include_role:
+    name: geerlingguy.repo-remi
+
+- name: Enable php 7.3 remi repo
+  become: true
+  shell: dnf module enable php:remi-7.3 -y
+  register: dnf_module_enable
+  changed_when: "'Nothing to do' not in dnf_module_enable.stdout"
+
+- name: Install php and modules
+  yum:
+    enablerepo:
+      - remi
+      - remi-modular
+      - remi-safe
+      - remi-php73
+    name:
+      - php73
+      - php73-php-cli
+      - php73-php-intl
+      - php73-php-iconv
+      - php73-php-fpm
+      - php73-php-curl
+      - php73-php-gd
+      - php73-php-mysql
+      - php73-php-mysqli
+      - php73-php-opcache
+      - php73-php-json
+      - php73-php-mbstring
+      - php73-php-soap
+      - php73-php-xml
+      - php73-php-zip
+      - php73-php-gmp
+      - php73-php-bcmath
+      - php73-php-pecl-memcached
+      - php73-php-pecl-xdebug3
+      - php73-php-pecl-redis4
+      - php73-php-pecl-imagick
+      - php73-php-sodium
+    state: present
+
+- name: Rename php-fpm service
+  file:
+    src: "/usr/lib/systemd/system/php73-php-fpm.service"
+    dest: "/usr/lib/systemd/system/php7.3-fpm.service"
+    state: link
+  become: true
+
+- name: Add environment
+  file:
+    src: "/opt/remi/php73/enable"
+    dest: "/etc/profile.d/php73.sh"
+    state: link
+  become: true
+
+- name: Add php command environment
+  file:
+    src: "/opt/remi/php73/root/usr/bin/php"
+    dest: "/usr/bin/php"
+    state: link
+  become: true
+
+- name: Setup mysql
+  include_role:
+    name: geerlingguy.mysql
+
+- name: Set socket php-fpm
+  ansible.builtin.set_fact:
+    socket_php_fpm: "/var/opt/remi/php73/run/php-fpm/www.sock"
+
+- name: Create nginx vhost config
+  template:
+    src: monicahq.conf.j2
+    dest: /etc/nginx/conf.d/monica.conf
+
+- name: Replace nginx username
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^user '
+    insertafter: '^#user '
+    line: user apache;
+
+- name: Recursively change ownership of a directory
+  file:
+    path: /var/log/nginx
+    state: directory
+    recurse: yes
+    owner: apache
+    group: www-data

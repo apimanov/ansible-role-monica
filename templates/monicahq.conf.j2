@@ -1,8 +1,8 @@
 #https://github.com/monicahq/monica/blob/master/scripts/docker/fpm/examples/nginx/web/nginx.conf
 server {
-  listen 80 default_server;
-  listen   [::]:80 default_server;
-  server_name {{ nginx_server_name }};
+  listen 80;
+  listen   [::]:80;
+  server_name monica;
   root         /srv/monicahq/public;
   index        index.php;
   charset      utf-8;
@@ -47,7 +47,7 @@ location ~ ^/(?:index)\.php(?:$|/) {
     #Avoid sending the security headers twice
     fastcgi_param modHeadersAvailable true;
     fastcgi_param front_controller_active true;
-    fastcgi_pass  unix:/var/run/php/php7.3-fpm.sock;
+    fastcgi_pass  unix:{{ socket_php_fpm }};
     fastcgi_intercept_errors on;
     fastcgi_request_buffering off;
 }
