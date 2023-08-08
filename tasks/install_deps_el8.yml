@@ -95,6 +95,11 @@
     insertafter: '^#user '
     line: user apache;
 
+- name: Ensure group "www-data" exists
+  ansible.builtin.group:
+    name: www-data
+    state: present
+
 - name: Recursively change ownership of a directory
   file:
     path: /var/log/nginx
@@ -102,3 +107,4 @@
     recurse: yes
     owner: apache
     group: www-data
+  tags: molecule-notest
